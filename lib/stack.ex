@@ -5,6 +5,13 @@ defmodule Stack do
   def new, do: []
 
   def push(stack, item), do: [item | stack]
+  def push_multiple(stack, items) do
+    List.foldl(
+      items,
+      stack,
+      fn(item, stack) -> push(stack, item) end
+    )
+  end
 
   def peek([]), do: :empty
   def peek([top | _]), do: top

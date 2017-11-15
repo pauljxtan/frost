@@ -2,14 +2,6 @@ defmodule FrostTest do
   use ExUnit.Case
   doctest Frost
 
-  test "get facts from KB" do
-    assert KB.facts(kb1()) == [
-      KB.rule(
-        KB.predicate("man", ["socrates"])
-      )
-    ]
-  end
-
   test "stack operations" do
     stack = Stack.new()
     assert Stack.empty?(stack)
@@ -22,6 +14,39 @@ defmodule FrostTest do
     assert top == 3
   end
 
+  test "get facts from KB" do
+    assert KB.facts(kb1()) == [
+      KB.rule(
+        KB.predicate("man", ["socrates"])
+      )
+    ]
+  end
+
+  test "get matching rules from KB" do
+    goal = KB.predicate("mortal", ["socrates"])
+    assert KB.matching_rules(kb1(), goal) == [
+      KB.rule(
+        KB.predicate("mortal", ["socrates"]),
+        [
+          KB.predicate("man", ["socrates"])
+        ]
+      ),
+      KB.rule(
+        KB.predicate("mortal", ["socrates"]),
+        [
+          KB.predicate("woman", ["socrates"])
+        ]
+      )
+    ]
+  end
+
+  test "backchaining" do
+    assert Backchain.backchain1(kb1(), KB.predicate("man", ["socrates"]))
+    assert not Backchain.backchain1(kb1(), KB.predicate("man", ["socrate"]))
+    assert Backchain.backchain1(kb1(), KB.predicate("mortal", ["socrates"]))
+    assert not Backchain.backchain1(kb1(), KB.predicate("mortal", ["socrate"]))
+  end
+
   def kb1() do
     [
       KB.rule(
@@ -31,6 +56,12 @@ defmodule FrostTest do
         KB.predicate("mortal", ["socrates"]),
         [
           KB.predicate("man", ["socrates"])
+        ]
+      ),
+      KB.rule(
+        KB.predicate("mortal", ["socrates"]),
+        [
+          KB.predicate("woman", ["socrates"])
         ]
       )
     ]

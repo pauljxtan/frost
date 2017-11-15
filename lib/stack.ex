@@ -4,7 +4,7 @@ defmodule Stack do
   """
   def new, do: []
 
-  def push(stack, item), do: [item | stack]}
+  def push(stack, item), do: [item | stack]
 
   def peek([]), do: :empty
   def peek([top | _]), do: top
@@ -12,7 +12,7 @@ defmodule Stack do
   def pop([]), do: :empty
   def pop([top | rest]), do: {top, rest}
 
-  def size(stack), do: length(items)
+  def size(stack), do: length(stack)
 
   def empty?(stack), do: stack == []
 end

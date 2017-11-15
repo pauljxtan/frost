@@ -47,6 +47,15 @@ defmodule FrostTest do
     assert not Backchain.backchain1(kb1(), KB.predicate("mortal", ["socrate"]))
   end
 
+  test "string utils" do
+    assert Utils.valid_var_or_const?("socrates1")
+    assert not Utils.valid_var_or_const?("1socrates1")
+    assert Utils.starts_with_uppercase?("Socrates")
+    assert not Utils.starts_with_uppercase?("socrates")
+    assert Utils.starts_with_lowercase?("socrates")
+    assert not Utils.starts_with_lowercase?("Socrates")
+  end
+
   def kb1() do
     [
       KB.rule(

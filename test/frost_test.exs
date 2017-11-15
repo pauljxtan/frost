@@ -47,6 +47,23 @@ defmodule FrostTest do
     assert not Backchain.backchain1(kb1(), KB.predicate("mortal", ["socrate"]))
   end
 
+  test "unify lists" do
+    assert Backchain.unify(["a", "b", "c"], ["a", "b", "c"]) ==
+      {["a", "b", "c"], []}
+    assert Backchain.unify(["a", "b", "c"], ["a", "b", "d"]) ==
+      :cannot_unify
+    assert Backchain.unify(["a", "b", "c"], ["a", "b", "X"]) ==
+      {["a", "b", "c"], [{"X", "c"}]}
+    assert Backchain.unify(["a", "b", "Y"], ["a", "b", "c"]) ==
+      {["a", "b", "c"], [{"Y", "c"}]}
+    assert Backchain.unify(["a", "b", "X"], ["a", "b", "X"]) ==
+      {["a", "b", "X"], []}
+    assert Backchain.unify(["a", "b", "X"], ["a", "b", "Y"]) ==
+      :cannot_unify
+    assert Backchain.unify(["Z", "b", "X"], ["a", "Y", "c"]) ==
+      {["a", "b", "c"], [{"Z", "a"}, {"Y", "b"}, {"X", "c"}]}
+  end
+
   test "string utils" do
     assert Utils.valid_var_or_const?("socrates1")
     assert not Utils.valid_var_or_const?("1socrates1")

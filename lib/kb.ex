@@ -3,42 +3,44 @@ defmodule KB do
 
   def init(), do: []
 
-  def kb_fact?(kb, fact), do: Enum.member?(facts(kb), fact)
+  def kb_fact?(kb, fact) do
+    Enum.member?(facts(kb), fact)
+  end
 
-  def facts(kb), do: Enum.filter(kb, fn rule -> fact?(rule) end)
+  def facts(kb), do: Enum.filter(kb, fn thing -> elem(thing, 0) == :fact end)
+  def rules(kb), do: Enum.filter(kb, fn thing -> elem(thing, 0) == :rule end)
 
   def matching_rules(kb, goal) do
     Enum.filter(
-      kb,
+      rules(kb),
       fn rule -> 
-        head = rule[:head]
-        head[:word] == goal[:word] && 
-          can_unify?(head[:subjects], goal[:subjects])
+        {:rule, {:predicate, rule_word, rule_subjects}, _} = rule
+        {:predicate, goal_word, goal_subjects} = goal
+        rule_word == goal_word && can_unify?(rule_subjects, goal_subjects)
       end
     )
   end
 
   @doc """
-  Represents a rule with optional antecedents.
+  Constructs a fact consisting of a predicate.
+  """
+  def fact(predicate), do: {:fact, predicate}
+
+  @doc """
+  Constructs a rule with a consequent (head) and one or more antecedents (body).
   E.g. mortal(X) :- man(X).
     -> consequent: mortal(X)
     -> antecedent: man(X)
   """
-  def rule(head), do: %{head: head, body: []}
-  def rule(head, body), do: %{head: head, body: body}
+  def rule(head, body), do: {:rule, head, body}
 
   @doc """
-  A rule with no body (antecedents) is a fact.
-  """
-  def fact?(rule), do: rule[:body] == []
-
-  @doc """
-  Represents a predicate, with one or more subjects.
+  Constructs a predicate with one or more subjects.
   E.g. cityOf(toronto, canada)
-    -> word: city
+    -> word: cityOf
     -> subjects: toronto, canada
   """
-  def predicate(word, subjects), do: %{word: word, subjects: subjects}
+  def predicate(word, subjects), do: {:predicate, word, subjects}
 
   @doc """
   Checks if two lists can be unified.
@@ -52,6 +54,7 @@ defmodule KB do
   (Note: invalid variable or constant names should be already filtered out.)
   """
   def unify(list1, list2) do
+    IO.puts((inspect list1) <> (inspect list2))
     if length(list1) != length(list2) do
       :cannot_unify
     else
@@ -98,8 +101,7 @@ defmodule KB do
     new_predicates = List.foldl(
       predicates,
       [],
-      fn(predicate, new_predicates) ->
-        subjects = predicate[:subjects]
+      fn({:predicate, word, subjects}, new_predicates) ->
         new_subjects = List.foldl(
           subjects,
           [],
@@ -108,7 +110,7 @@ defmodule KB do
             [new_subject | new_subjects]
           end
         )
-        new_predicate = %{predicate | subjects: Enum.reverse(new_subjects)}
+        new_predicate = {:predicate, word, Enum.reverse(new_subjects)}
         [new_predicate | new_predicates]
       end
     )

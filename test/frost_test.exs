@@ -16,12 +16,10 @@ defmodule FrostTest do
 
   test "get facts from KB" do
     assert KB.facts(kb()) == [
-      KB.rule(
-        KB.predicate("man", ["socrates"])
-      ),
-      KB.rule(
-        KB.predicate("woman", ["beauvoir"])
-      )
+      KB.fact(KB.predicate("man", ["sartre"])),
+      KB.fact(KB.predicate("man", ["socrates"])),
+      KB.fact(KB.predicate("woman", ["beauvoir"])),
+      KB.fact(KB.predicate("woman", ["hypatia"]))
     ]
   end
 
@@ -63,7 +61,7 @@ defmodule FrostTest do
   end
 
   test "backchaining (w/ unification, w/ solutions)" do
-    :todo
+    #assert Backchain.backchain(kb(), KB.predicate("man", ["X"]))
   end
 
   test "unify lists" do
@@ -97,24 +95,19 @@ defmodule FrostTest do
 
   def kb() do
     [
-      KB.rule(
-        KB.predicate("man", ["socrates"])
-      ),
-      KB.rule(
-        KB.predicate("woman", ["beauvoir"])
-      ),
-      KB.rule(
-        KB.predicate("mortal", ["X"]),
-        [
-          KB.predicate("man", ["X"])
-        ]
-      ),
-      KB.rule(
-        KB.predicate("mortal", ["X"]),
-        [
-          KB.predicate("woman", ["X"])
-        ]
-      )
+      {:fact, {:predicate, "man", ["sartre"]}},
+      {:fact, {:predicate, "man", ["socrates"]}},
+      {:fact, {:predicate, "woman", ["beauvoir"]}},
+      {:fact, {:predicate, "woman", ["hypatia"]}},
+
+      {:rule, 
+        {:predicate, "mortal", ["X"]}, 
+        [{:predicate, "man", ["X"]}]
+      },
+      {:rule, 
+        {:predicate, "mortal", ["X"]}, 
+        [{:predicate, "woman", ["X"]}]
+      }
     ]
   end
 end

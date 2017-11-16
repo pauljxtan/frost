@@ -12,7 +12,7 @@ defmodule Backchain do
       true
     else
       {goal, stack} = Stack.pop(stack)
-      if kb_fact?(kb, goal) do
+      if kb_fact?(kb, {:fact, goal}) do
         # Current goal satisfied, test the rest
         bc(kb, stack)
       else
@@ -21,11 +21,13 @@ defmodule Backchain do
           matching_rules(kb, goal),
           [],
           fn(rule, results) ->
-            {_, matches} = unify(rule[:head][:subjects], goal[:subjects])
+            {:rule, {:predicate, _, rule_subjects}, rule_body} = rule
+            {:predicate, _, goal_subjects} = goal
+            {_, matches} = unify(rule_subjects, goal_subjects)
             # For each match, replace all instances of the variable with the constant
             antecedents = List.foldl(
               matches,
-              rule[:body],
+              rule_body,
               fn({var, const}, antecedents) ->
                 replace_vars_with_const(antecedents, var, const)
               end

@@ -3,20 +3,32 @@ defmodule KB do
 
   def init(), do: []
 
+  @doc """
+  Returns all facts in the knowledge base.
+  """
+  def facts(kb), do: Enum.filter(kb, fn thing -> elem(thing, 0) == :fact end)
+
+  @doc """
+  Returns all rules in the knowledge base.
+  """
+  def rules(kb), do: Enum.filter(kb, fn thing -> elem(thing, 0) == :rule end)
+
+  @doc """
+  Checks if the given fact is in the knowledge base.
+  """
   def kb_fact?(kb, fact) do
     Enum.member?(facts(kb), fact)
   end
 
-  def facts(kb), do: Enum.filter(kb, fn thing -> elem(thing, 0) == :fact end)
-  def rules(kb), do: Enum.filter(kb, fn thing -> elem(thing, 0) == :rule end)
-
-  def matching_rules(kb, goal) do
+  @doc """
+  Returns all rules matching the given query.
+  """
+  def matching_rules(kb, {:predicate, word, subjects}) do
     Enum.filter(
       rules(kb),
       fn rule -> 
         {:rule, {:predicate, rule_word, rule_subjects}, _} = rule
-        {:predicate, goal_word, goal_subjects} = goal
-        rule_word == goal_word && can_unify?(rule_subjects, goal_subjects)
+        rule_word == word && can_unify?(rule_subjects, subjects)
       end
     )
   end
@@ -27,7 +39,8 @@ defmodule KB do
   def fact(predicate), do: {:fact, predicate}
 
   @doc """
-  Constructs a rule with a consequent (head) and one or more antecedents (body).
+  Constructs a rule with a consequent (head predicate)
+  and one or more antecedents (body predicates).
   E.g. mortal(X) :- man(X).
     -> consequent: mortal(X)
     -> antecedent: man(X)
@@ -54,7 +67,6 @@ defmodule KB do
   (Note: invalid variable or constant names should be already filtered out.)
   """
   def unify(list1, list2) do
-    IO.puts((inspect list1) <> (inspect list2))
     if length(list1) != length(list2) do
       :cannot_unify
     else
@@ -106,12 +118,10 @@ defmodule KB do
           subjects,
           [],
           fn(subject, new_subjects) ->
-            new_subject = if subject == var, do: const, else: subject
-            [new_subject | new_subjects]
+            [(if subject == var, do: const, else: subject) | new_subjects]
           end
         )
-        new_predicate = {:predicate, word, Enum.reverse(new_subjects)}
-        [new_predicate | new_predicates]
+        [{:predicate, word, Enum.reverse(new_subjects)} | new_predicates]
       end
     )
     Enum.reverse(new_predicates)

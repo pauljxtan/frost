@@ -20,8 +20,7 @@ defmodule Backchain do
         results = List.foldl(
           matching_rules(kb, goal),
           [],
-          fn(rule, results) ->
-            {:rule, {:predicate, _, rule_subjects}, rule_body} = rule
+          fn({:rule, {:predicate, _, rule_subjects}, rule_body}, results) ->
             {:predicate, _, goal_subjects} = goal
             {_, matches} = unify(rule_subjects, goal_subjects)
             # For each match, replace all instances of the variable with the constant

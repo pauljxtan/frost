@@ -1,10 +1,31 @@
 defmodule Backchain do
   import KB
+  import Utils
 
   @doc """
   A simple backchaining algorithm.
   """
-  def backchain(kb, query), do: bc(kb, [query])
+  def backchain(kb, query) do
+    {:predicate, word, subjects} = query
+    # If the query includes variables, we need to try subbing in possible subjects
+    if includes_variable?(subjects) do
+      List.foldl(
+        possible_subjects(kb, word),
+        [], # solutions
+        fn(test_subjects, solutions) ->
+          if backchain(kb, {:predicate, word, test_subjects}) do
+            # TODO: keep just the subjects that were subtituted
+            #       (not constants already in the query)
+            solutions ++ [test_subjects]
+          else
+            solutions
+          end
+        end
+      )
+    else
+      bc(kb, [query])
+    end
+  end
 
   def bc(kb, stack) do
     if Stack.empty?(stack) do
@@ -16,7 +37,7 @@ defmodule Backchain do
         # Current goal satisfied, test the rest
         bc(kb, stack)
       else
-        # Go through matching rules and test their antecedents
+        # If no facts match, go through matching rules and test their antecedents
         results = List.foldl(
           matching_rules(kb, goal),
           [],
@@ -39,4 +60,19 @@ defmodule Backchain do
       end
     end
   end
+
+  @doc """
+  Checks if the subject is a constant (e.g. "socrates").
+  """
+  def constant?(subject), do: starts_with_lowercase?(subject)
+
+  @doc """
+  Checks if the subject is a variable (e.g. "Person").
+  """
+  def variable?(subject), do: starts_with_uppercase?(subject)
+
+  @doc """
+  Checks if the given subjects includes a variable.
+  """
+  def includes_variable?(subjects), do: Enum.any?(subjects, &variable?/1)
 end

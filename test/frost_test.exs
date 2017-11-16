@@ -53,6 +53,22 @@ defmodule FrostTest do
 
   end
 
+  test "KB misc" do
+    assert KB.possible_subjects(kb(), "man") == [["sartre"], ["socrates"]]
+    assert KB.possible_subjects(kb(), "woman") == [["beauvoir"], ["hypatia"]]
+  end
+
+
+  test "backchaining misc" do
+    assert Backchain.constant?("socrates")
+    refute Backchain.constant?("Man")
+    refute Backchain.variable?("socrates")
+    assert Backchain.variable?("Man")
+
+    assert Backchain.includes_variable?(["socrates", "Person"])
+    refute Backchain.includes_variable?(["socrates", "beauvoir"])
+  end
+
   test "backchaining (w/ unification, no solutions)" do
     assert Backchain.backchain(kb(), KB.predicate("mortal", ["socrates"]))
     assert Backchain.backchain(kb(), KB.predicate("mortal", ["beauvoir"]))
@@ -61,7 +77,10 @@ defmodule FrostTest do
   end
 
   test "backchaining (w/ unification, w/ solutions)" do
-    #assert Backchain.backchain(kb(), KB.predicate("man", ["X"]))
+    assert Backchain.backchain(kb(), KB.predicate("man", ["X"])) ==
+      [["sartre"], ["socrates"]]
+    assert Backchain.backchain(kb(), KB.predicate("woman", ["X"])) ==
+      [["beauvoir"], ["hypatia"]]
   end
 
   test "unify lists" do

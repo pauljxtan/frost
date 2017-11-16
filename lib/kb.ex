@@ -77,26 +77,26 @@ defmodule KB do
           if starts_with_lowercase?(s1) do
             if starts_with_lowercase?(s2) do
               if s1 != s2 do
-                {[:cannot_unify | unified], matches}
+                {unified ++ [:cannot_unify], matches}
               else
                 # Unified two constants
-                {[s1 | unified], matches}
+                {unified ++ [s1], matches}
               end
             else
               # Unified constant (s1) and variable (s2)
-              {[s1 | unified], [{s2, s1} | matches]}
+              {unified ++ [s1], matches ++ [{s2, s1}]}
             end
           else
             if starts_with_uppercase?(s2) do
               if s1 != s2 do
-                {[:cannot_unify | unified], matches}
+                {unified ++ [:cannot_unify], matches}
               else
                 # Unified two variables
-                {[s2 | unified], matches}
+                {unified ++ [s2], matches}
               end
             else
               # Unified variable (s1) and constant (s2)
-              {[s2 | unified], [{s1, s2} | matches]}
+              {unified ++ [s2], matches ++ [{s1, s2}]}
             end
           end
         end
@@ -104,13 +104,13 @@ defmodule KB do
       if Enum.member?(unified, :cannot_unify) do
         :cannot_unify
       else
-        {Enum.reverse(unified), Enum.reverse(matches)}
+        {unified, matches}
       end
     end
   end
 
   def replace_vars_with_const(predicates, var, const) do
-    new_predicates = List.foldl(
+    List.foldl(
       predicates,
       [],
       fn({:predicate, word, subjects}, new_predicates) ->
@@ -118,12 +118,25 @@ defmodule KB do
           subjects,
           [],
           fn(subject, new_subjects) ->
-            [(if subject == var, do: const, else: subject) | new_subjects]
+            new_subjects ++ [(if subject == var, do: const, else: subject)]
           end
         )
-        [{:predicate, word, Enum.reverse(new_subjects)} | new_predicates]
+        new_predicates ++ [{:predicate, word, new_subjects}]
       end
     )
-    Enum.reverse(new_predicates)
+  end
+
+  @doc """
+  Returns all possible subjects for a predicate with the given word.
+  (To be more precise, it returns "sets of subjects".)
+  """
+  def possible_subjects(kb, word) do
+    List.foldl(
+      facts(kb),
+      [],
+      fn({:fact, {:predicate, fact_word, fact_subjects}}, subjects) ->
+        if fact_word == word, do: subjects ++ [fact_subjects], else: subjects
+      end
+    )
   end
 end

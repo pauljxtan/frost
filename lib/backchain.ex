@@ -9,19 +9,35 @@ defmodule Backchain do
     {:predicate, word, subjects} = query
     # If the query includes variables, we need to try subbing in possible subjects
     if includes_variable?(subjects) do
-      List.foldl(
-        possible_subjects(kb, word),
-        [], # solutions
-        fn(test_subjects, solutions) ->
-          if backchain(kb, {:predicate, word, test_subjects}) do
-            # TODO: keep just the subjects that were subtituted
-            #       (not constants already in the query)
-            solutions ++ [test_subjects]
-          else
-            solutions
+      possible_subjects = 
+      if matches_fact?(kb, word) do
+        # [1] Querying a fact: check the matching facts for possible subjects
+        # TODO: refactor this common code
+        List.foldl(
+          possible_subjects(kb, word),
+          [],
+          fn(test_subjects, solutions) ->
+            if backchain(kb, {:predicate, word, test_subjects}) do
+              # TODO: keep just the subjects that were subtituted
+              #       (not constants already in the query)
+              solutions ++ [test_subjects]
+            else
+              solutions
+            end
           end
+        )
+      else 
+        if matches_rule?(kb, word) do
+          # [2] Querying a rule: check facts for the rule's antecedents for possible subjects
+          # TODO: We need to recurse here, since antecedents may be facts or rules themselves
+          # This is pretty tricky...
+          words = words_of_antecedents(antecedents_of_rules(lookup_rule(kb, word)))
+          :todo
+        else
+          # Query does not match a fact or rule in the KB
+          :invalid_query
         end
-      )
+      end
     else
       bc(kb, [query])
     end

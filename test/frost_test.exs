@@ -56,6 +56,29 @@ defmodule FrostTest do
   test "KB misc" do
     assert KB.possible_subjects(kb(), "man") == [["sartre"], ["socrates"]]
     assert KB.possible_subjects(kb(), "woman") == [["beauvoir"], ["hypatia"]]
+
+    assert KB.matches_fact?(kb(), "man")
+    assert KB.matches_fact?(kb(), "woman")
+    refute KB.matches_fact?(kb(), "mortal")
+    refute KB.matches_rule?(kb(), "man")
+    refute KB.matches_rule?(kb(), "woman")
+    assert KB.matches_rule?(kb(), "mortal")
+
+    assert KB.lookup_fact(kb(), "man") == [
+      {:fact, {:predicate, "man", ["sartre"]}},
+      {:fact, {:predicate, "man", ["socrates"]}}
+    ]
+    assert KB.lookup_fact(kb(), "woman") == [
+      {:fact, {:predicate, "woman", ["beauvoir"]}},
+      {:fact, {:predicate, "woman", ["hypatia"]}}
+    ]
+    assert KB.lookup_rule(kb(), "mortal") == [
+      {:rule, {:predicate, "mortal", ["X"]}, [{:predicate, "man", ["X"]}]},
+      {:rule, {:predicate, "mortal", ["X"]}, [{:predicate, "woman", ["X"]}]}
+    ]
+
+    assert KB.antecedents_of_rules(KB.lookup_rule(kb(), "mortal")) ==
+      [{:predicate, "man", ["X"]}, {:predicate, "woman", ["X"]}]
   end
 
 
@@ -81,6 +104,9 @@ defmodule FrostTest do
       [["sartre"], ["socrates"]]
     assert Backchain.backchain(kb(), KB.predicate("woman", ["X"])) ==
       [["beauvoir"], ["hypatia"]]
+    #assert Backchain.backchain(kb(), KB.predicate("mortal", ["X"])) ==
+    #  [["sartre"], ["socrates"], ["beauvoir"], ["hypatia"]]
+    assert Backchain.backchain(kb(), KB.predicate("cool", ["X"])) == :invalid_query
   end
 
   test "unify lists" do

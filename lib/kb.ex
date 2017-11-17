@@ -21,6 +21,20 @@ defmodule KB do
   end
 
   @doc """
+  Returns all facts matching the given word.
+  """
+  def lookup_fact(kb, word) do
+    Enum.filter(facts(kb), fn {:fact, {:predicate, fact_word, _}} -> fact_word == word end)
+  end
+
+  @doc """
+  Returns all rules matching the given word.
+  """
+  def lookup_rule(kb, word) do
+    Enum.filter(rules(kb), fn {:rule, {:predicate, rule_word, _}, _} -> rule_word == word end)
+  end
+
+  @doc """
   Returns all rules matching the given query.
   """
   def matching_rules(kb, {:predicate, word, subjects}) do
@@ -124,6 +138,45 @@ defmodule KB do
         new_predicates ++ [{:predicate, word, new_subjects}]
       end
     )
+  end
+
+  @doc """
+  Checks if the given word matches a fact in the database.
+  """
+  def matches_fact?(kb, word) do
+    Enum.any?(facts(kb), fn {:fact, {:predicate, fact_word, _}} -> fact_word == word end)
+  end
+  
+  @doc """
+  Checks if the given word matches a rule in the database.
+  """
+  def matches_rule?(kb, word) do
+    Enum.any?(rules(kb), fn {:rule, {:predicate, rule_word, _}, _} -> rule_word == word end)
+  end
+
+  @doc """
+  Returns the antecedents of the given rule.
+  """
+  def antecedents_of_rule({:rule, _, antecedents}), do: antecedents
+
+  @doc """
+  Returns the antecedents of the given rules.
+  """
+  def antecedents_of_rules(rules) do
+    List.foldl(
+      rules,
+      [],
+      fn(rule, all_antecedents) ->
+        all_antecedents ++ antecedents_of_rule(rule)
+      end
+    )
+  end
+
+  @doc """
+  Returns the word of each antecedent.
+  """
+  def words_of_antecedents(antecedents) do
+
   end
 
   @doc """

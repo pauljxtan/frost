@@ -3,23 +3,30 @@ defmodule Backchain do
   import Utils
 
   @doc """
-  A simple backchaining algorithm.
+  Applies backward chaining (reasoning) on a query (phrased as a predicate).
+
+  If the query subject(s) contain only constants, returns true or false.
+  E.g.,
+    Query: man(socrates) -> true
+    Query: mortal(hypatia) -> true
+
+  If the query subject(s) contain variables, returns all solutions,
+  i.e. constants for which the query holds.
+  E.g.,
+    Query: man(X) -> ["sartre", "socrates"]
+    Query: mortal(X) -> ["sartre", "socrates", "beauvoir", "hypatia"]
+    Query: city_of(X, canada) -> [["toronto", "canada"], ["montreal", "canada"], ...]
   """
   def backchain(kb, query) do
     {:predicate, word, subjects} = query
     # If the query includes variables, we need to try subbing in possible subjects
     if includes_variable?(subjects) do
-      possible_subjects = 
       if matches_fact?(kb, word) do
-        # [1] Querying a fact: check the matching facts for possible subjects
-        # TODO: refactor this common code
         List.foldl(
           possible_subjects(kb, word),
           [],
           fn(test_subjects, solutions) ->
             if backchain(kb, {:predicate, word, test_subjects}) do
-              # TODO: keep just the subjects that were subtituted
-              #       (not constants already in the query)
               solutions ++ [test_subjects]
             else
               solutions
@@ -28,17 +35,27 @@ defmodule Backchain do
         )
       else 
         if matches_rule?(kb, word) do
-          # [2] Querying a rule: check facts for the rule's antecedents for possible subjects
-          # TODO: We need to recurse here, since antecedents may be facts or rules themselves
-          # This is pretty tricky...
-          words = words_of_antecedents(antecedents_of_rules(lookup_rule(kb, word)))
-          :todo
+          rules = lookup_rule(kb, word)
+          List.foldl(
+            rules,
+            [],
+            fn({:rule, _, antecedents}, solutions) ->
+              List.foldl(
+                antecedents,
+                solutions,
+                fn(antecedent, solutions) ->
+                  solutions ++ backchain(kb, antecedent)
+                end
+              )
+            end
+          )
         else
           # Query does not match a fact or rule in the KB
           :invalid_query
         end
       end
     else
+      # Query only contains constants (no variables), so no substitutions required
       bc(kb, [query])
     end
   end

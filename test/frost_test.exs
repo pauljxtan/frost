@@ -1,6 +1,5 @@
 defmodule FrostTest do
   use ExUnit.Case
-  doctest Frost
 
   test "stack operations" do
     stack = Stack.new()
@@ -100,13 +99,20 @@ defmodule FrostTest do
   end
 
   test "backchaining (w/ unification, w/ solutions)" do
+    assert Backchain.backchain(kb(), KB.predicate("cool", ["X"])) == :invalid_query
+
     assert Backchain.backchain(kb(), KB.predicate("man", ["X"])) ==
       [["sartre"], ["socrates"]]
     assert Backchain.backchain(kb(), KB.predicate("woman", ["X"])) ==
       [["beauvoir"], ["hypatia"]]
-    #assert Backchain.backchain(kb(), KB.predicate("mortal", ["X"])) ==
-    #  [["sartre"], ["socrates"], ["beauvoir"], ["hypatia"]]
-    assert Backchain.backchain(kb(), KB.predicate("cool", ["X"])) == :invalid_query
+
+    # mortal (X) -> man(X) or female(X)
+    assert Backchain.backchain(kb(), KB.predicate("mortal", ["X"])) ==
+      [["sartre"], ["socrates"], ["beauvoir"], ["hypatia"]]
+
+    # mortal(X) -> person(X) -> man(X) or female(X)
+    assert Backchain.backchain(kb2(), KB.predicate("mortal", ["X"]))
+      [["sartre"], ["socrates"], ["beauvoir"], ["hypatia"]]
   end
 
   test "unify lists" do
@@ -138,6 +144,8 @@ defmodule FrostTest do
     refute Utils.starts_with_lowercase?("Socrates")
   end
 
+  #==== TEST DATA
+
   def kb() do
     [
       {:fact, {:predicate, "man", ["sartre"]}},
@@ -153,6 +161,29 @@ defmodule FrostTest do
         {:predicate, "mortal", ["X"]}, 
         [{:predicate, "woman", ["X"]}]
       }
+    ]
+  end
+
+  def kb2() do
+    [
+      {:fact, {:predicate, "man", ["sartre"]}},
+      {:fact, {:predicate, "man", ["socrates"]}},
+      {:fact, {:predicate, "woman", ["beauvoir"]}},
+      {:fact, {:predicate, "woman", ["hypatia"]}},
+
+      {:rule, 
+        {:predicate, "person", ["X"]}, 
+        [{:predicate, "man", ["X"]}]
+      },
+      {:rule, 
+        {:predicate, "person", ["X"]}, 
+        [{:predicate, "woman", ["X"]}]
+      },
+
+      {:rule, 
+        {:predicate, "mortal", ["X"]}, 
+        [{:predicate, "person", ["X"]}]
+      },
     ]
   end
 end

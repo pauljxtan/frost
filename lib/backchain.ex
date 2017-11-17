@@ -19,22 +19,30 @@ defmodule Backchain do
   """
   def backchain(kb, query) do
     {:predicate, word, subjects} = query
-    # If the query includes variables, we need to try subbing in possible subjects
-    if includes_variable?(subjects) do
-      if matches_fact?(kb, word) do
-        List.foldl(
-          possible_subjects(kb, word),
-          [],
-          fn(test_subjects, solutions) ->
-            if backchain(kb, {:predicate, word, test_subjects}) do
-              solutions ++ [test_subjects]
-            else
-              solutions
+
+    if not query_valid?(kb, query) do
+      :invalid_query
+    else
+      if not includes_variable?(subjects) do
+        # Query only contains constants (no variables) - no substitutions required
+        bc(kb, [query])
+      else
+        # Query contains variables - search for constants that make query true
+        if matches_fact?(kb, word) do
+          # Query is a fact
+          List.foldl(
+            possible_subjects(kb, word),
+            [],
+            fn(test_subjects, solutions) ->
+              if backchain(kb, {:predicate, word, test_subjects}) do
+                solutions ++ [test_subjects]
+              else
+                solutions
+              end
             end
-          end
-        )
-      else 
-        if matches_rule?(kb, word) do
+          )
+        else
+          # Query is a rule
           rules = lookup_rule(kb, word)
           List.foldl(
             rules,
@@ -49,14 +57,8 @@ defmodule Backchain do
               )
             end
           )
-        else
-          # Query does not match a fact or rule in the KB
-          :invalid_query
         end
       end
-    else
-      # Query only contains constants (no variables), so no substitutions required
-      bc(kb, [query])
     end
   end
 
@@ -108,4 +110,11 @@ defmodule Backchain do
   Checks if the given subjects includes a variable.
   """
   def includes_variable?(subjects), do: Enum.any?(subjects, &variable?/1)
+
+  @doc """
+  Checks if the query is valid, i.e. matches a fact or rule in the knowledge base.
+  """
+  def query_valid?(kb, {:predicate, word, _}) do
+    matches_fact?(kb, word) || matches_rule?(kb, word)
+  end
 end

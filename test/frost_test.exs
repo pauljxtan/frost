@@ -14,7 +14,7 @@ defmodule FrostTest do
   end
 
   test "get facts from KB" do
-    assert KB.facts(kb()) == [
+    assert KB.facts(kb1()) == [
       KB.fact(KB.predicate("man", ["sartre"])),
       KB.fact(KB.predicate("man", ["socrates"])),
       KB.fact(KB.predicate("woman", ["beauvoir"])),
@@ -23,20 +23,12 @@ defmodule FrostTest do
   end
 
   test "get matching rules from KB with unification" do
-    goal = KB.predicate("mortal", ["socrates"])
-    assert KB.matching_rules(kb(), goal) == [
-      KB.rule(
-        KB.predicate("mortal", ["X"]),
-        [
-          KB.predicate("man", ["X"])
-        ]
-      ),
-      KB.rule(
-        KB.predicate("mortal", ["X"]),
-        [
-          KB.predicate("woman", ["X"])
-        ]
-      )
+    assert KB.matching_rules(kb1(), KB.predicate("mortal", ["socrates"])) == [
+      KB.rule(KB.predicate("mortal", ["X"]), [KB.predicate("person", ["X"])]),
+    ]
+    assert KB.matching_rules(kb1(), KB.predicate("person", ["beauvoir"])) == [
+      KB.rule(KB.predicate("person", ["X"]), [KB.predicate("man", ["X"])]),
+      KB.rule(KB.predicate("person", ["X"]), [KB.predicate("woman", ["X"])])
     ]
   end
 
@@ -49,69 +41,88 @@ defmodule FrostTest do
       KB.predicate("cool", ["thing", "abc"]),
       KB.predicate("awesome", ["def", "thing"])
     ]
-
   end
 
-  test "KB misc" do
-    assert KB.possible_subjects(kb(), "man") == [["sartre"], ["socrates"]]
-    assert KB.possible_subjects(kb(), "woman") == [["beauvoir"], ["hypatia"]]
+  test "get possible subjects from KB facts based on word" do
+    assert KB.possible_subjects(kb1(), "man") == [["sartre"], ["socrates"]]
+    assert KB.possible_subjects(kb1(), "woman") == [["beauvoir"], ["hypatia"]]
+  end
 
-    assert KB.matches_fact?(kb(), "man")
-    assert KB.matches_fact?(kb(), "woman")
-    refute KB.matches_fact?(kb(), "mortal")
-    refute KB.matches_rule?(kb(), "man")
-    refute KB.matches_rule?(kb(), "woman")
-    assert KB.matches_rule?(kb(), "mortal")
+  test "check if word matches fact in KB" do
+    assert KB.matches_fact?(kb1(), "man")
+    assert KB.matches_fact?(kb1(), "woman")
+    refute KB.matches_fact?(kb1(), "mortal")
+  end
 
-    assert KB.lookup_fact(kb(), "man") == [
+  test "check if word matches rule in KB" do
+    refute KB.matches_rule?(kb1(), "man")
+    refute KB.matches_rule?(kb1(), "woman")
+    assert KB.matches_rule?(kb1(), "mortal")
+  end
+
+
+  test "get all facts in KB matching word" do
+    assert KB.lookup_fact(kb1(), "man") == [
       {:fact, {:predicate, "man", ["sartre"]}},
       {:fact, {:predicate, "man", ["socrates"]}}
     ]
-    assert KB.lookup_fact(kb(), "woman") == [
+    assert KB.lookup_fact(kb1(), "woman") == [
       {:fact, {:predicate, "woman", ["beauvoir"]}},
       {:fact, {:predicate, "woman", ["hypatia"]}}
     ]
-    assert KB.lookup_rule(kb(), "mortal") == [
-      {:rule, {:predicate, "mortal", ["X"]}, [{:predicate, "man", ["X"]}]},
-      {:rule, {:predicate, "mortal", ["X"]}, [{:predicate, "woman", ["X"]}]}
+  end
+
+  test "get all rules in KB matching word" do
+    assert KB.lookup_rule(kb1(), "mortal") == [
+      {:rule, {:predicate, "mortal", ["X"]}, [{:predicate, "person", ["X"]}]},
     ]
 
-    assert KB.antecedents_of_rules(KB.lookup_rule(kb(), "mortal")) ==
+    assert KB.antecedents_of_rules(KB.lookup_rule(kb1(), "mortal")) ==
+      [{:predicate, "person", ["X"]}]
+    assert KB.antecedents_of_rules(KB.lookup_rule(kb1(), "person")) ==
       [{:predicate, "man", ["X"]}, {:predicate, "woman", ["X"]}]
   end
 
 
-  test "backchaining misc" do
+  test "check if subject is constant" do
     assert Backchain.constant?("socrates")
     refute Backchain.constant?("Man")
+  end
+
+  test "check if subject is variable" do
     refute Backchain.variable?("socrates")
     assert Backchain.variable?("Man")
+  end
 
+  test "check if list of subjects includes variable(s)" do
     assert Backchain.includes_variable?(["socrates", "Person"])
     refute Backchain.includes_variable?(["socrates", "beauvoir"])
   end
 
-  test "backchaining (w/ unification, no solutions)" do
-    assert Backchain.backchain(kb(), KB.predicate("mortal", ["socrates"]))
-    assert Backchain.backchain(kb(), KB.predicate("mortal", ["beauvoir"]))
-    refute Backchain.backchain(kb(), KB.predicate("woman", ["socrates"]))
-    refute Backchain.backchain(kb(), KB.predicate("man", ["beauvoir"]))
+  test "perform backchaining on query without variables" do
+    assert Backchain.backchain(kb1(), KB.predicate("mortal", ["socrates"]))
+    assert Backchain.backchain(kb1(), KB.predicate("mortal", ["beauvoir"]))
+    refute Backchain.backchain(kb1(), KB.predicate("woman", ["socrates"]))
+    refute Backchain.backchain(kb1(), KB.predicate("man", ["beauvoir"]))
+    assert Backchain.backchain(kb1(), KB.predicate("person", ["sartre"]))
+
+    assert Backchain.backchain(kb1(), KB.predicate("cool", ["socrates"])) == :invalid_query
   end
 
-  test "backchaining (w/ unification, w/ solutions)" do
-    assert Backchain.backchain(kb(), KB.predicate("cool", ["X"])) == :invalid_query
+  test "perform backchaining on query with variables" do
+    assert Backchain.backchain(kb1(), KB.predicate("cool", ["X"])) == :invalid_query
 
-    assert Backchain.backchain(kb(), KB.predicate("man", ["X"])) ==
+    assert Backchain.backchain(kb1(), KB.predicate("man", ["X"])) ==
       [["sartre"], ["socrates"]]
-    assert Backchain.backchain(kb(), KB.predicate("woman", ["X"])) ==
+    assert Backchain.backchain(kb1(), KB.predicate("woman", ["X"])) ==
       [["beauvoir"], ["hypatia"]]
 
-    # mortal (X) -> man(X) or female(X)
-    assert Backchain.backchain(kb(), KB.predicate("mortal", ["X"])) ==
+    # person(X) -> man(X) or female(X)
+    assert Backchain.backchain(kb1(), KB.predicate("person", ["X"]))
       [["sartre"], ["socrates"], ["beauvoir"], ["hypatia"]]
 
     # mortal(X) -> person(X) -> man(X) or female(X)
-    assert Backchain.backchain(kb2(), KB.predicate("mortal", ["X"]))
+    assert Backchain.backchain(kb1(), KB.predicate("mortal", ["X"]))
       [["sartre"], ["socrates"], ["beauvoir"], ["hypatia"]]
   end
 
@@ -146,25 +157,7 @@ defmodule FrostTest do
 
   #==== TEST DATA
 
-  def kb() do
-    [
-      {:fact, {:predicate, "man", ["sartre"]}},
-      {:fact, {:predicate, "man", ["socrates"]}},
-      {:fact, {:predicate, "woman", ["beauvoir"]}},
-      {:fact, {:predicate, "woman", ["hypatia"]}},
-
-      {:rule, 
-        {:predicate, "mortal", ["X"]}, 
-        [{:predicate, "man", ["X"]}]
-      },
-      {:rule, 
-        {:predicate, "mortal", ["X"]}, 
-        [{:predicate, "woman", ["X"]}]
-      }
-    ]
-  end
-
-  def kb2() do
+  def kb1() do
     [
       {:fact, {:predicate, "man", ["sartre"]}},
       {:fact, {:predicate, "man", ["socrates"]}},

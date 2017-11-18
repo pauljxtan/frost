@@ -1,6 +1,6 @@
 # frost
 
-A logical inference engine based on [backward chaining](https://en.wikipedia.org/wiki/Backward_chaining) that can be extended to applications like [situation calculus](https://en.wikipedia.org/wiki/Situation_calculus) or the [General Problem Solver](https://en.wikipedia.org/wiki/General_Problem_Solver) developed by Simon, Shaw and Newell. Essentially, a simplified and naive variant of Prolog.
+A logical inference engine based on [backward chaining](https://en.wikipedia.org/wiki/Backward_chaining) that can be extended to applications like [situation calculus](https://en.wikipedia.org/wiki/Situation_calculus) or the [General Problem Solver](https://en.wikipedia.org/wiki/General_Problem_Solver) developed by Simon, Shaw and Newell. Essentially, a simplified and naive variant of Prolog that can be integrated into Elixir applications.
 
 ## Components
 
@@ -35,25 +35,25 @@ The engine may be queried in two ways: establishing the truth of a given fact, o
 
 Based on the above KB, these are the results of some example queries:
 
-| Query                   | Prolog-style notation  | Answer                        |
-| ----------------------- | ---------------------- | ----------------------------- |
-| "Is Sartre a man?"      | `?- man(sartre).`      | `true`                        |
-| "Is Socrates a woman?"  | `?- woman(socrates).`  | `false`                       |
-| "Is Beauvoir a person?" | `?- person(beauvoir).` | `true`                        |
-| "Is Hypatia mortal?"    | `?- mortal(hypatia).`  | `true`                        |
-| "Is Plato mortal?"      | `?- mortal(plato).`    | `false`                       |
-| "Is Socrates male?"     | `?- male(socrates).`   | `:invalid_query`              |
-| "Who is a man?"         | `?- man(X).`           | `[["sartre"], "[socrates"]]`  |
-| "Who is a woman?"       | `?- woman(X).`         | `[["beauvoir"], ["hypatia"]]` |
+| Query                   | Prolog-style notation  | Answer                           |
+| ----------------------- | ---------------------- | -------------------------------- |
+| "Is Sartre a man?"      | `?- man(sartre).`      | `true`                           |
+| "Is Socrates a woman?"  | `?- woman(socrates).`  | `false`                          |
+| "Is Beauvoir a person?" | `?- person(beauvoir).` | `true`                           |
+| "Is Hypatia mortal?"    | `?- mortal(hypatia).`  | `true`                           |
+| "Is Plato mortal?"      | `?- mortal(plato).`    | `false`                          |
+| "Is Socrates male?"     | `?- male(socrates).`   | `:invalid_query` [1]             |
+| "Who is a man?"         | `?- man(X).`           | `[["sartre"], "[socrates"]]` [2] |
+| "Who is a woman?"       | `?- woman(X).`         | `[["beauvoir"], ["hypatia"]]`    |
 
 ### Notes
 
-* While it's obvious to our highly-evolved human brains that Socrates is male, our KB does not even know what "male" means - we would need additional rules such as `male(X) :- man(X)`, `male(X) :- boy(X)`, `male(X) :- son(X)` and so on.
-* Solutions are returned as _sets of_ subjects. In this particular example we only deal with one subject at a time, but a query like `?- city_of(X, Y)` would return `[["toronto", "canada"], ["newyork", "usa"], ...`.
+1. While it's obvious to our highly-evolved human brains that Socrates is male, our KB does not even know what "male" means - we would need additional rules such as `male(X) :- man(X)`, `male(X) :- boy(X)`, `male(X) :- son(X)` and so on.
+2. Solutions are returned as _sets of_ subjects. In this particular example we only deal with one subject at a time, but a query like `?- city_of(X, Y)` would return `[["toronto", "canada"], ["newyork", "usa"], ...`.
 
 ## API
 
-At the moment, we can just pass a predicate directly to the backchaining function directly, e.g.
+At the moment, we can just pass a predicate directly to the backchaining function, e.g.
 ```elixir
 kb = some_knowledge_base()
 query = KB.predicate("mortal", ["X"])

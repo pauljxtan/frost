@@ -1,6 +1,11 @@
 defmodule KB do
   import Utils
 
+  #---- Knowledge base
+
+  @doc """
+  Initializes an empty knowledge base.
+  """
   def init(), do: []
 
   @doc """
@@ -16,8 +21,7 @@ defmodule KB do
   @doc """
   Checks if the given fact is in the knowledge base.
   """
-  def kb_fact?(kb, fact) do
-    Enum.member?(facts(kb), fact)
+  def kb_fact?(kb, fact), do: Enum.member?(facts(kb), fact)
   end
 
   @doc """
@@ -48,10 +52,72 @@ defmodule KB do
   end
 
   @doc """
+  Checks if the given word matches a fact in the database.
+  """
+  def matches_fact?(kb, word) do
+    Enum.any?(facts(kb), fn {:fact, {:predicate, fact_word, _}} -> fact_word == word end)
+  end
+  
+  @doc """
+  Checks if the given word matches a rule in the database.
+  """
+  def matches_rule?(kb, word) do
+    Enum.any?(rules(kb), fn {:rule, {:predicate, rule_word, _}, _} -> rule_word == word end)
+  end
+
+  @doc """
+  Returns all possible subjects for a predicate with the given word.
+  (To be more precise, it returns "sets of subjects".)
+  """
+  def possible_subjects(kb, word) do
+    List.foldl(
+      facts(kb),
+      [],
+      fn({:fact, {:predicate, fact_word, fact_subjects}}, subjects) ->
+        if fact_word == word, do: subjects ++ [fact_subjects], else: subjects
+      end
+    )
+  end
+
+
+  #---- Predicate
+
+  @doc """
+  Constructs a predicate with one or more subjects.
+  E.g. cityOf(toronto, canada)
+    -> word: cityOf
+    -> subjects: toronto, canada
+  """
+  def predicate(word, subjects), do: {:predicate, word, subjects}
+
+  def replace_vars_with_const(predicates, var, const) do
+    List.foldl(
+      predicates,
+      [],
+      fn({:predicate, word, subjects}, new_predicates) ->
+        new_subjects = List.foldl(
+          subjects,
+          [],
+          fn(subject, new_subjects) ->
+            new_subjects ++ [(if subject == var, do: const, else: subject)]
+          end
+        )
+        new_predicates ++ [{:predicate, word, new_subjects}]
+      end
+    )
+  end
+
+
+  #---- Fact
+
+  @doc """
   Constructs a fact consisting of a predicate.
   """
   def fact(predicate), do: {:fact, predicate}
 
+
+  #---- Rule
+  
   @doc """
   Constructs a rule with a consequent (head predicate)
   and one or more antecedents (body predicates).
@@ -62,12 +128,25 @@ defmodule KB do
   def rule(head, body), do: {:rule, head, body}
 
   @doc """
-  Constructs a predicate with one or more subjects.
-  E.g. cityOf(toronto, canada)
-    -> word: cityOf
-    -> subjects: toronto, canada
+  Returns the antecedents of the given rule.
   """
-  def predicate(word, subjects), do: {:predicate, word, subjects}
+  def antecedents_of_rule({:rule, _, antecedents}), do: antecedents
+
+  @doc """
+  Returns the antecedents of the given rules.
+  """
+  def antecedents_of_rules(rules) do
+    List.foldl(
+      rules,
+      [],
+      fn(rule, all_antecedents) ->
+        all_antecedents ++ antecedents_of_rule(rule)
+      end
+    )
+  end
+
+
+  #---- Unification
 
   @doc """
   Checks if two lists can be unified.
@@ -121,75 +200,5 @@ defmodule KB do
         {unified, matches}
       end
     end
-  end
-
-  def replace_vars_with_const(predicates, var, const) do
-    List.foldl(
-      predicates,
-      [],
-      fn({:predicate, word, subjects}, new_predicates) ->
-        new_subjects = List.foldl(
-          subjects,
-          [],
-          fn(subject, new_subjects) ->
-            new_subjects ++ [(if subject == var, do: const, else: subject)]
-          end
-        )
-        new_predicates ++ [{:predicate, word, new_subjects}]
-      end
-    )
-  end
-
-  @doc """
-  Checks if the given word matches a fact in the database.
-  """
-  def matches_fact?(kb, word) do
-    Enum.any?(facts(kb), fn {:fact, {:predicate, fact_word, _}} -> fact_word == word end)
-  end
-  
-  @doc """
-  Checks if the given word matches a rule in the database.
-  """
-  def matches_rule?(kb, word) do
-    Enum.any?(rules(kb), fn {:rule, {:predicate, rule_word, _}, _} -> rule_word == word end)
-  end
-
-  @doc """
-  Returns the antecedents of the given rule.
-  """
-  def antecedents_of_rule({:rule, _, antecedents}), do: antecedents
-
-  @doc """
-  Returns the antecedents of the given rules.
-  """
-  def antecedents_of_rules(rules) do
-    List.foldl(
-      rules,
-      [],
-      fn(rule, all_antecedents) ->
-        all_antecedents ++ antecedents_of_rule(rule)
-      end
-    )
-  end
-
-  @doc """
-  Returns the word of each antecedent.
-  """
-  def words_of_antecedents(antecedents) do
-
-  end
-
-  @doc """
-  Returns all possible subjects for a predicate with the given word.
-  (To be more precise, it returns "sets of subjects".)
-  """
-  def possible_subjects(kb, word) do
-    List.foldl(
-      facts(kb),
-      [],
-      fn({:fact, {:predicate, fact_word, fact_subjects}}, subjects) ->
-        if fact_word == word, do: subjects ++ [fact_subjects], else: subjects
-      end
-    )
   end
 end

@@ -22,7 +22,6 @@ defmodule KB do
   Checks if the given fact is in the knowledge base.
   """
   def kb_fact?(kb, fact), do: Enum.member?(facts(kb), fact)
-  end
 
   @doc """
   Returns all facts matching the given word.

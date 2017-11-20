@@ -7,15 +7,15 @@ defmodule Backchain do
 
   If the query subject(s) contain only constants, returns true or false.
   E.g.,
-    Query: man(socrates) -> true
-    Query: mortal(hypatia) -> true
+  Query: man(socrates) -> true
+  Query: mortal(hypatia) -> true
 
   If the query subject(s) contain variables, returns all solutions,
   i.e. constants for which the query holds.
   E.g.,
-    Query: man(X) -> ["sartre", "socrates"]
-    Query: mortal(X) -> ["sartre", "socrates", "beauvoir", "hypatia"]
-    Query: city_of(X, canada) -> [["toronto", "canada"], ["montreal", "canada"], ...]
+  Query: man(X) -> ["sartre", "socrates"]
+  Query: mortal(X) -> ["sartre", "socrates", "beauvoir", "hypatia"]
+  Query: city_of(X, canada) -> [["toronto", "canada"], ["montreal", "canada"], ...]
   """
   def backchain(kb, query) do
     {:predicate, word, subjects} = query
@@ -30,36 +30,41 @@ defmodule Backchain do
         # Query contains variables - search for constants that make query true
         if matches_fact?(kb, word) do
           # Query is a fact
-          List.foldl(
-            possible_subjects(kb, word),
-            [],
-            fn(test_subjects, solutions) ->
-              if backchain(kb, {:predicate, word, test_subjects}) do
-                solutions ++ [test_subjects]
-              else
-                solutions
-              end
-            end
-          )
+          backchain_fact(kb, word)
         else
           # Query is a rule
-          rules = lookup_rule(kb, word)
-          List.foldl(
-            rules,
-            [],
-            fn({:rule, _, antecedents}, solutions) ->
-              List.foldl(
-                antecedents,
-                solutions,
-                fn(antecedent, solutions) ->
-                  solutions ++ backchain(kb, antecedent)
-                end
-              )
-            end
-          )
+          backchain_rule(kb, word)
         end
       end
     end
+  end
+
+  def backchain_fact(kb, word) do
+    List.foldl(
+      possible_subjects(kb, word),
+      [],
+      fn(subjects, solutions) ->
+        if backchain(kb, {:predicate, word, subjects}) do
+          solutions ++ [subjects]
+        else
+          solutions
+        end
+      end
+    )
+  end
+
+  def backchain_rule(kb, word) do
+    List.foldl(
+      lookup_rule(kb, word),
+      [],
+      fn({:rule, _, antecedents}, solutions) ->
+        List.foldl(
+          antecedents,
+          solutions,
+          fn(antecedent, solutions) -> solutions ++ backchain(kb, antecedent) end
+        )
+      end
+    )
   end
 
   def bc(kb, stack) do
